@@ -1,6 +1,3 @@
-# Currently this expects to be built with ESPHome dev
-# at commit e013b4867519c44b570fd6cf05872a7324845009.
-#
 # To build the firmware, run:
 #
 # ```sh
@@ -10,6 +7,7 @@
 # then take the `firmware.factory.bin` under the
 # `.esphome/build/digital-audio-bridge/.pioenvs/digital-audio-bridge`
 # folder, and flash that to factory-reset and prep the device for use.
+# Do not flash that image via OTA — only via serial.
 
 substitutions:
   name: digital-audio-bridge
@@ -31,6 +29,7 @@ esphome:
   name: ${name}
   friendly_name: ${friendly_name}
   name_add_mac_suffix: true
+  min_version: 2026.2.1
   platformio_options:
     board_build.arduino.memory_type: qio_opi
   project:
@@ -103,48 +102,49 @@ esp32:
 logger:
   level: debug # FIXME in prod make info
 
-# These are not the most up to date components!
-# But look at comments in the pr 8065 about an update
-# to later commit IDs for all these components that does
-# run stable (allegedly).  FIXME.
+# https://github.com/esphome/esphome/pull/12284#issuecomment-3929269125
 external_components:
-  - source:
-      # https://github.com/esphome/esphome/pull/12253
-      type: git
-      url: https://github.com/esphome/esphome
-      ref: 0fe230114c80b6d3378f04c777baadee178e40ad
-    components: [mixer]
-  - source:
-      # https://github.com/esphome/esphome/pull/12254
-      type: git
-      url: https://github.com/esphome/esphome
-      ref: 1ab4b990092ae063a16cb1511a188c536fdb336e
-    components: [resampler]
-  - source:
-      # https://github.com/esphome/esphome/pull/12256
-      type: git
-      url: https://github.com/esphome/esphome
-      ref: a2d98e1d5e020200db8f3caf27a74a939a661dc4
-    components: [audio]
-  - source:
-      # https://github.com/esphome/esphome/pull/12258
-      type: git
-      url: https://github.com/esphome/esphome
-      ref: bff22983a390352360796f8e1363127e0cd1f898
-    components: [media_player]
-  - source:
-      # https://github.com/esphome/esphome/pull/12284
-      type: git
-      url: https://github.com/esphome/esphome
-      ref: 71c8c6bdfc8006902eb0ea7b15bc86c575cef9be
-    components: [mdns, sendspin]
   - source:
       # https://github.com/esphome/esphome/pull/12429
       type: git
       url: https://github.com/esphome/esphome
-      ref: f5c1a8111df78e32d07d7a7bb800018808cdc0e7
+      ref: a6c403deb7603d316dce2820897902e01c3695cc
     refresh: 0s
     components: [file, http_request, media_source, speaker_source]
+  - source:
+      # https://github.com/esphome/esphome/pull/12284
+      type: git
+      url: https://github.com/esphome/esphome
+      ref: 119a5c25a483c58b3d58a35c8cec95495c6491c2
+    components: [sendspin]
+
+  # The following sources are merged into the dev branch of ESPHome, but not yet in a release.
+  # We've pinned them to their specific squash merge commit id for reproducable builds.
+  # These should be available in ESPHome 2026.3.0
+  - source:
+      # Dev commit hash for squash merge from PR#10212
+      type: git
+      url: https://github.com/esphome/esphome
+      ref: 903971de12c1b291ca8cd367ce5cdf9af8b304ae
+    components: [runtime_image]
+  - source:
+      # Dev commit hash for squash merge from PR#12258
+      type: git
+      url: https://github.com/esphome/esphome
+      ref: 264c8faedd0ab956b0437ec2ecc0bacae1708923
+    components: [media_player]
+  - source:
+      # Dev commit hash for squash merge from PR#14013
+      type: git
+      url: https://github.com/esphome/esphome
+      ref: ba7134ee3f870ce00d2990d84b142b734028330f
+    components: [mdns]
+  - source:
+      # Dev commit hash for squash merge from PR#14108
+      type: git
+      url: https://github.com/esphome/esphome
+      ref: d2026b4cd74bbeb9b86941bf1887f3d93d639387
+    components: [audio]
   # For SPDIF (TOSLINK) support:
   - source: github://pr#8065
     components: [i2s_audio]
