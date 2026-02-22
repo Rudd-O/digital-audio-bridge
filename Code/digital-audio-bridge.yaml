@@ -1,0 +1,374 @@
+# Currently this expects to be built with ESPHome dev
+# at commit b9c2be8228bff63c0b4e37a597a8dab7376aed32.
+#
+# To build the firmware, run:
+#
+# ```sh
+# esphome compile path/to/digital-audio-bridge.yaml
+# ```
+#
+# then take the `firmware.factory.bin` under the
+# `.esphome/build/digital-audio-bridge/.pioenvs/digital-audio-bridge`
+# folder, and flash that to factory-reset and prep the device for use.
+
+substitutions:
+  name: digital-audio-bridge
+  friendly_name: Digital audio bridge
+  # Change this if most of your audio sources are 48 KHz (rare).
+  sample_rate: 44100
+  # There is still room to reduce the buffer duration.
+  # Although at a quarter second, responsiveness is quite okay.
+  speaker_buffer_duration: 250ms
+  # 0.25 seconds of CD-quality stereo audio.
+  # Up this to 48000 if you changed the sample rate to 48000.
+  media_player_buffer_size: 44100
+  speaker_timeout: 250ms
+  task_stack_in_psram: false
+  codec_support: false
+  format: WAV
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+  name_add_mac_suffix: true
+  platformio_options:
+    board_build.arduino.memory_type: qio_opi
+  project:
+    name: "Digital audio bridge"
+    version: "0.1.0"
+  on_boot:
+    priority: 210
+    then:
+      - delay: 2s
+      # Run the script to refresh the LED status
+      - script.execute: control_leds
+
+dashboard_import:
+  package_import_url: github://Rudd-O/digital-audio-bridge/Code/digital-audio-bridge.yaml
+
+globals:
+  - id: disconnected_from_wifi
+    type: bool
+    restore_value: no
+
+script:
+  - id: control_leds
+    then:
+    - if:
+        condition: wifi.ap_active
+        then:
+          - light.turn_on:
+              id: indicator_light
+              effect: Access point active
+        else:
+          - logger.log: Not AP active
+          - if:
+              condition: wifi.connected
+              then:
+                - logger.log: Wi-Fi connected
+                - light.turn_off:
+                    id: indicator_light
+                - light.turn_on:
+                    id: indicator_light
+                    brightness: 100%
+                    red: 0.0
+                    green: 0.0
+                    blue: 1.0
+                    flash_length: 5s
+                - delay: 5s
+                - light.turn_off:
+                    id: indicator_light
+              else:
+                - if:
+                    condition:
+                      - lambda: return id(disconnected_from_wifi);
+                    then:
+                      - logger.log: Not connected to Wi-Fi
+                      - light.turn_on:
+                          id: indicator_light
+                          effect: Not connected to Wi-Fi
+                    else:
+                      - logger.log: Scanning for Wi-Fi
+                      - light.turn_on:
+                          id: indicator_light
+                          effect: Scanning for Wi-Fi
+
+esp32:
+  # Ju Jiasheng ESP32-S3-N16R8 from AliExpress.
+  board: esp32-s3-devkitc-1
+  cpu_frequency: 240MHz
+  framework:
+    type: esp-idf
+
+logger:
+  level: debug # FIXME in prod make info
+
+# These are not the most up to date components!
+# But look at comments in the pr 8065 about an update
+# to later commit IDs for all these components that does
+# run stable (allegedly).  FIXME.
+external_components:
+  - source:
+      # https://github.com/esphome/esphome/pull/12253
+      type: git
+      url: https://github.com/esphome/esphome
+      ref: 0fe230114c80b6d3378f04c777baadee178e40ad
+    components: [mixer]
+  - source:
+      # https://github.com/esphome/esphome/pull/12254
+      type: git
+      url: https://github.com/esphome/esphome
+      ref: 1ab4b990092ae063a16cb1511a188c536fdb336e
+    components: [resampler]
+  - source:
+      # https://github.com/esphome/esphome/pull/12256
+      type: git
+      url: https://github.com/esphome/esphome
+      ref: a2d98e1d5e020200db8f3caf27a74a939a661dc4
+    components: [audio]
+  - source:
+      # https://github.com/esphome/esphome/pull/12258
+      type: git
+      url: https://github.com/esphome/esphome
+      ref: bff22983a390352360796f8e1363127e0cd1f898
+    components: [media_player]
+  - source:
+      # https://github.com/esphome/esphome/pull/12284
+      type: git
+      url: https://github.com/esphome/esphome
+      ref: 71c8c6bdfc8006902eb0ea7b15bc86c575cef9be
+    components: [mdns, sendspin]
+  - source:
+      # https://github.com/esphome/esphome/pull/12429
+      type: git
+      url: https://github.com/esphome/esphome
+      ref: f5c1a8111df78e32d07d7a7bb800018808cdc0e7
+    refresh: 0s
+    components: [file, http_request, media_source, speaker_source]
+  # For SPDIF (TOSLINK) support:
+  - source: github://pr#8065
+    components: [i2s_audio]
+    refresh: 1h
+
+http_request:
+
+update:
+  - platform: http_request
+    name: None
+    id: update_http_request
+    source: https://rudd-o.com/esphome/manifests/digital-audio-bridge.json
+
+# Enable Home Assistant API.
+api:
+  encryption: {}
+  # You may not want to connect Home Assistant to this device.
+  # You may just want to use it as a Music Assistant one.
+  # So by default we set this to zero (disabled).
+  reboot_timeout: 0s
+
+ota:
+  - platform: http_request
+    id: ota_http_request
+# Do not enable the ESPHome OTA component.
+# The device can be flashed via serial.
+# If you want to flash over ESPHome, turn on the platform
+# and set a password below, then reflash via serial once.
+#   - platform: esphome
+#     password: "fc6da18a797824283748596027f304e6"
+
+psram:
+  ignore_not_found: false
+  mode: octal
+
+network:
+  enable_high_performance: true
+
+wifi:
+  use_psram: true
+  ap: {}
+  on_connect: 
+    then:
+      - globals.set:
+          id: disconnected_from_wifi
+          value: "false"
+      - script.execute: control_leds
+  on_disconnect: 
+    then:
+      - globals.set:
+          id: disconnected_from_wifi
+          value: "true"
+      - script.execute: control_leds
+
+improv_serial:
+
+captive_portal:
+
+light:
+  - platform: esp32_rmt_led_strip
+    rgb_order: GRB
+    color_correct: [90%, 75%, 65%]
+    chipset: WS2812
+    pin: GPIO48
+    num_leds: 1
+    name: "Indicator light"
+    id: indicator_light
+    disabled_by_default: true
+    effects:
+      - strobe:
+          name: Access point active
+          colors:
+            - state: true
+              brightness: 100%
+              red: 100%
+              green: 100%
+              blue: 0%
+              duration: 500ms
+              transition_length: 400ms
+            - state: false
+              duration: 500ms
+              transition_length: 400ms
+      - strobe:
+          name: Not connected to Wi-Fi
+          colors:
+            - state: true
+              brightness: 100%
+              red: 100%
+              green: 0%
+              blue: 0%
+              duration: 500ms
+              transition_length: 400ms
+            - state: false
+              duration: 500ms
+              transition_length: 400ms
+      - strobe:
+          name: Scanning for Wi-Fi
+          colors:
+            - state: true
+              brightness: 100%
+              red: 0%
+              green: 50%
+              blue: 90%
+              duration: 500ms
+              transition_length: 400ms
+            - state: false
+              duration: 500ms
+              transition_length: 400ms
+
+button:
+- platform: restart
+  name: Restart
+  entity_category: diagnostic
+  icon: mdi:restart
+- platform: factory_reset
+  name: "Restart with factory default settings"
+  id: reset
+  disabled_by_default: true
+  entity_category: config
+
+sensor:
+  - platform: internal_temperature
+    name: "Device temperature"
+    update_interval: 10s
+    entity_category: diagnostic
+    disabled_by_default: true
+  - platform: wifi_signal
+    name: "Wi-Fi signal strength"
+    update_interval: 10s
+    entity_category: diagnostic
+    disabled_by_default: true
+  - platform: sendspin
+    type: kalman_error
+    name: Kalman error
+    entity_category: diagnostic
+    disabled_by_default: true
+  - platform: sendspin
+    type: audible_syncs
+    name: Audible syncs
+    entity_category: diagnostic
+    disabled_by_default: true
+
+i2s_audio:
+  - id: i2s_bus
+
+speaker:
+  # Hardware speaker output
+  - platform: i2s_audio
+    id: i2s_audio_speaker
+    sample_rate: ${sample_rate}
+    i2s_dout_pin: GPIO47
+    spdif_mode: true
+    bits_per_sample: 16bit
+    i2s_audio_id: i2s_bus
+    dac_type: external
+    channel: stereo
+    timeout: ${speaker_timeout}
+    buffer_duration: ${speaker_buffer_duration}
+    use_apll: true
+
+  # Virtual speakers to combine the announcement and media streams together into one output
+  - platform: mixer
+    id: mixing_speaker
+    output_speaker: i2s_audio_speaker
+    num_channels: 2
+    task_stack_in_psram: ${task_stack_in_psram}
+    source_speakers:
+      - id: announcement_mixing_input
+        timeout: ${speaker_timeout}
+        buffer_duration: ${speaker_buffer_duration}
+      - id: media_mixing_input
+        timeout: ${speaker_timeout}
+        buffer_duration: ${speaker_buffer_duration}
+
+  # Virtual speakers to resample each pipeline's audio, if necessary, as the mixer speaker requires the same sample rate
+  - platform: resampler
+    id: announcement_resampling_speaker
+    output_speaker: announcement_mixing_input
+    sample_rate: ${sample_rate}
+    buffer_duration: ${speaker_buffer_duration}
+    task_stack_in_psram: ${task_stack_in_psram}
+  - platform: resampler
+    id: media_resampling_speaker
+    output_speaker: media_mixing_input
+    sample_rate: ${sample_rate}
+    buffer_duration: ${speaker_buffer_duration}
+    task_stack_in_psram: ${task_stack_in_psram}
+
+##### Sendspin Configuration
+sendspin:
+  id: sendspin_hub
+  task_stack_in_psram: ${task_stack_in_psram}
+  kalman_process_error: 0.01
+
+media_source:
+  - platform: sendspin
+    id: sendspin_source
+    buffer_size: 524288
+  - platform: http_request
+    id: http_source
+    buffer_size: ${media_player_buffer_size}
+
+media_player:
+  - platform: speaker_source
+    id: external_media_player
+    task_stack_in_psram: ${task_stack_in_psram}
+    name: None
+    announcement_speaker: announcement_resampling_speaker
+    media_speaker: media_resampling_speaker
+    announcement_pipeline:
+      format: ${format}
+      num_channels: 1
+      sample_rate: ${sample_rate}
+    media_pipeline:
+      format: ${format}
+      num_channels: 2
+      sample_rate: ${sample_rate}
+    sources:
+      - sendspin_source
+      - http_source
+    on_announcement:
+      - mixer_speaker.apply_ducking:
+          id: media_mixing_input
+          decibel_reduction: 20
+          duration: 0.0s
+  - platform: sendspin
+    id: sendspin_group_media_player
