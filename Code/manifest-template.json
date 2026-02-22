@@ -1,0 +1,25 @@
+{
+    "name": "Rudd-O.Digital audio bridge",
+    "version": "0.1.0",
+    "home_assistant_domain": "esphome",
+    "new_install_prompt_erase": false,
+    "builds": [
+        {
+            "chipFamily": "ESP32-S3",
+            "ota": {
+                "path": "0-1-0/firmware-ota.bin",
+                "md5": "f2e926043893b8c9a6b66a1822eeb7c7",
+                "sha256": "3cd8f4358d190ab64dce1fb15d65e6240067f8a4a2e2d46b23867e90f0cd3089",
+                "summary": "## What's Changed\r\n* We are not generating changelogs yet."
+            },
+            "parts": [
+                {
+                    "path": "0-1-0/firmware-factory.bin",
+                    "offset": 0,
+                    "md5": "e166d7d39a3e23bc4ae0da3a546e77c4",
+                    "sha256": "6b22812561bf912e47c036fd2e455d2fee16c3d67cdad627104dac9772df6bf2"
+                }
+            ]
+        }
+    ]
+}
