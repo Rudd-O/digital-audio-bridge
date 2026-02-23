@@ -160,15 +160,15 @@ api:
   # So by default we set this to zero (disabled).
   reboot_timeout: 0s
 
-#update:
-#  - platform: http_request
-#    name: None
-#    id: update_http_request
-#    source: https://rudd-o.com/esphome/manifests/digital-audio-bridge.json
+update:
+  - platform: http_request
+    name: None
+    id: update_http_request
+    source: https://rudd-o.com/downloads/esphome/digital-audio-bridge/manifest.json
 
-#ota:
-#  - platform: http_request
-#    id: ota_http_request
+ota:
+  - platform: http_request
+    id: ota_http_request
 # Do not enable the ESPHome OTA component.
 # The device can be flashed via serial.
 # If you want to flash over ESPHome, turn on the platform
