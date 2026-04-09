@@ -1,4 +1,6 @@
-# Last built with ESPHome dev 2721f08bcc5e0c0238dd4a77bda50fe5d7fc7676.
+# Succesfully built with ESPHome dev 2721f08bcc5e0c0238dd4a77bda50fe5d7fc7676,
+# but also tested with 2026.3.1 and will be built for prod with 2026.3.3
+# at commit ID 496c395f1a34f99140e80d3e50ea68e87dba4999.
 #
 # To build the firmware, run:
 #
