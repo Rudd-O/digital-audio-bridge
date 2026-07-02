@@ -1,6 +1,4 @@
-# Succesfully built with ESPHome dev 2721f08bcc5e0c0238dd4a77bda50fe5d7fc7676,
-# but also tested with 2026.3.1 and will be built for prod with 2026.3.3
-# at commit ID 496c395f1a34f99140e80d3e50ea68e87dba4999.
+# Succesfully built with ESPHome 2026.6.4,
 #
 # To build the firmware, run:
 #
@@ -20,8 +18,8 @@ substitutions:
   sample_rate: 44100
   # There is still room to reduce the buffer duration.
   # Although at a quarter second, responsiveness is quite okay.
-  speaker_buffer_duration: 250ms
-  speaker_timeout: 250ms
+  speaker_buffer_duration: 100ms
+  speaker_timeout: 1000ms
   sendspin_buffer_size: 524288
   task_stack_in_psram: false
   codec_support: false
@@ -31,12 +29,12 @@ esphome:
   name: ${name}
   friendly_name: ${friendly_name}
   name_add_mac_suffix: true
-  min_version: 2026.2.1
+  min_version: 2026.6.4
   platformio_options:
     board_build.arduino.memory_type: qio_opi
   project:
     name: "Rudd-O.Digital audio bridge"
-    version: "0.3.0"
+    version: "0.4.0"
   on_boot:
     priority: 210
     then:
@@ -104,19 +102,6 @@ esp32:
 logger:
   level: debug # FIXME in prod make info
 
-external_components:
-  # For bleeding edge Sendspin support:
-  - source: github://pr#14933
-    components: [const, generic_image, media_source, sendspin]
-    refresh: 1h
-  # For SPDIF (TOSLINK) support:
-  - source:
-      type: git
-      url: https://github.com/johnboiles/esphome
-      ref: 996d283286514e3049122ce903bebd1dc6cb5b1a
-    components: [i2s_audio]
-    refresh: 1h
-
 http_request:
 
 # Enable Home Assistant API.
@@ -136,10 +121,10 @@ update:
 ota:
   - platform: http_request
     id: ota_http_request
-# Do not enable the ESPHome OTA component.
-# The device can be flashed via serial.
-# If you want to flash over ESPHome, turn on the platform
-# and set a password below, then reflash via serial once.
+# The ESPHome OTA component is not enabled by default.
+# The device can thus be flashed via serial.
+# If you want to flash over ESPHome, turn on the platform and set
+# a password below, rebuild, then reflash via serial once more.
 #   - platform: esphome
 #     password: "fc6da18a797824283748596027f304e6"
 
@@ -244,11 +229,6 @@ sensor:
     entity_category: diagnostic
     disabled_by_default: true
   - platform: sendspin
-    type: kalman_error
-    name: Kalman error
-    entity_category: diagnostic
-    disabled_by_default: true
-  - platform: sendspin
     type: track_progress
     name: Track progress
     entity_category: diagnostic
@@ -256,6 +236,38 @@ sensor:
   - platform: sendspin
     type: track_duration
     name: Track duration
+    entity_category: diagnostic
+    disabled_by_default: true
+  - platform: sendspin
+    type: track
+    name: Track number
+    entity_category: diagnostic
+    disabled_by_default: true
+  - platform: sendspin
+    type: year
+    name: Track year
+    entity_category: diagnostic
+    disabled_by_default: true
+
+text_sensor:
+  - platform: sendspin
+    type: title
+    name: Track title
+    entity_category: diagnostic
+    disabled_by_default: true
+  - platform: sendspin
+    type: artist
+    name: Track artist
+    entity_category: diagnostic
+    disabled_by_default: true
+  - platform: sendspin
+    type: album
+    name: Track album
+    entity_category: diagnostic
+    disabled_by_default: true
+  - platform: sendspin
+    type: album_artist
+    name: Album artist
     entity_category: diagnostic
     disabled_by_default: true
 
@@ -314,6 +326,7 @@ media_source:
   - platform: sendspin
     id: sendspin_source
     buffer_size: ${sendspin_buffer_size}
+    static_delay_adjustable: true
 
 media_player:
   - platform: speaker_source
