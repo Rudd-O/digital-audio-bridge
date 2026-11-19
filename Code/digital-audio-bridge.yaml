@@ -16,11 +16,8 @@ substitutions:
   friendly_name: Digital audio bridge
   # Change this if most of your audio sources are 48 KHz (rare).
   sample_rate: 44100
-  # There is still room to reduce the buffer duration.
-  # Although at a quarter second, responsiveness is quite okay.
-  speaker_buffer_duration: 100ms
   speaker_timeout: 1000ms
-  sendspin_buffer_size: 524288
+  keep_alive: false
   task_stack_in_psram: false
   codec_support: false
   format: WAV
@@ -29,12 +26,10 @@ esphome:
   name: ${name}
   friendly_name: ${friendly_name}
   name_add_mac_suffix: true
-  min_version: 2026.6.4
-  platformio_options:
-    board_build.arduino.memory_type: qio_opi
+  min_version: 2026.11.0
   project:
     name: "Rudd-O.Digital audio bridge"
-    version: "0.4.0"
+    version: "0.5.0"
   on_boot:
     priority: 210
     then:
@@ -157,7 +152,7 @@ captive_portal:
 
 light:
   - platform: esp32_rmt_led_strip
-    rgb_order: GRB
+    channel_colors: GRB
     color_correct: [90%, 75%, 65%]
     chipset: WS2812
     pin: GPIO48
@@ -286,7 +281,7 @@ speaker:
     dac_type: external
     channel: stereo
     timeout: ${speaker_timeout}
-    buffer_duration: ${speaker_buffer_duration}
+    keep_alive: ${keep_alive}
     use_apll: true
 
   # Virtual speakers to combine the announcement and media streams together into one output
@@ -297,24 +292,18 @@ speaker:
     task_stack_in_psram: ${task_stack_in_psram}
     source_speakers:
       - id: announcement_mixing_input
-        timeout: ${speaker_timeout}
-        buffer_duration: ${speaker_buffer_duration}
       - id: media_mixing_input
-        timeout: ${speaker_timeout}
-        buffer_duration: ${speaker_buffer_duration}
 
   # Virtual speakers to resample each pipeline's audio, if necessary, as the mixer speaker requires the same sample rate
   - platform: resampler
     id: announcement_resampling_speaker
     output_speaker: announcement_mixing_input
     sample_rate: ${sample_rate}
-    buffer_duration: ${speaker_buffer_duration}
     task_stack_in_psram: ${task_stack_in_psram}
   - platform: resampler
     id: media_resampling_speaker
     output_speaker: media_mixing_input
     sample_rate: ${sample_rate}
-    buffer_duration: ${speaker_buffer_duration}
     task_stack_in_psram: ${task_stack_in_psram}
 
 ##### Sendspin Configuration
@@ -325,7 +314,6 @@ sendspin:
 media_source:
   - platform: sendspin
     id: sendspin_source
-    buffer_size: ${sendspin_buffer_size}
     static_delay_adjustable: true
 
 media_player:

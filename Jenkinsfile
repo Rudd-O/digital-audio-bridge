@@ -1,7 +1,7 @@
 // https://github.com/Rudd-O/shared-jenkins-libraries
 @Library('shared-jenkins-libraries@master') _
 
-def esphome_version = "2026.6.4";
+def esphome_version = "2026.11.0";
 
 pipeline {
 
